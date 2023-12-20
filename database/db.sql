@@ -18,9 +18,13 @@ CREATE TABLE categories
 );
 
 
-CREATE TABLE brand_categories
+CREATE TABLE products
 (
     id SERIAL PRIMARY KEY,
+    name varchar(255) not null,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    quantity INTEGER NOT NULL,
     brand_id INTEGER REFERENCES brands(id),
     category_id INTEGER REFERENCES categories(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
