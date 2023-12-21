@@ -18,18 +18,6 @@ CREATE TABLE categories
 );
 
 
-CREATE TABLE products
-(
-    id SERIAL PRIMARY KEY,
-    name varchar(255) not null,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    quantity INTEGER NOT NULL,
-    brand_id INTEGER REFERENCES brands(id),
-    category_id INTEGER REFERENCES categories(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE roles
 (
     id SERIAL PRIMARY KEY,
@@ -59,6 +47,19 @@ insert into users
     (username, password, name, role_id, created_at)
 values
     ('admin', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Admin', 1, now());
+
+
+CREATE TABLE products
+(
+    id SERIAL PRIMARY KEY,
+    name varchar(255) not null,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    quantity INTEGER NOT NULL,
+    brand_id INTEGER REFERENCES brands(id),
+    category_id INTEGER REFERENCES categories(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 
 CREATE TABLE shops
