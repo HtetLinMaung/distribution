@@ -30,6 +30,19 @@ CREATE TABLE products
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE roles
+(
+    id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) NOT NULL UNIQUE,
+    deleted_at TIMESTAMP DEFAULT null
+);
+
+INSERT INTO roles
+    (role_name)
+VALUES
+    ('Admin'),
+    ('Manager'),
+    ('Distributor');
 
 CREATE TABLE users
 (
@@ -42,12 +55,11 @@ CREATE TABLE users
     deleted_at TIMESTAMP DEFAULT null
 );
 
-CREATE TABLE roles
-(
-    id SERIAL PRIMARY KEY,
-    role_name VARCHAR(50) NOT NULL UNIQUE,
-    deleted_at TIMESTAMP DEFAULT null
-);
+insert into users
+    (username, password, name, role_id, created_at)
+values
+    ('admin', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Admin', 1, now());
+
 
 CREATE TABLE shops
 (

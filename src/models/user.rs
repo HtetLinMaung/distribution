@@ -47,7 +47,6 @@ pub struct AddUserRequest {
     pub username: String,
     pub password: String,
     pub role_id: i32,
-    pub shop_id: i32,
 }
 
 pub async fn add_user(
@@ -57,8 +56,8 @@ pub async fn add_user(
     let hashed_password = hash(&data.password, DEFAULT_COST)
         .map_err(|e| format!("Failed to hash password: {}", e))?;
     client.execute(
-        "insert into users (name, username, password, role_id, shop_id) values ($1, $2, $3, $4, $5)",
-        &[&data.name, &data.username, &hashed_password, &data.role_id, &data.shop_id],
+        "insert into users (name, username, password, role_id) values ($1, $2, $3, $4)",
+        &[&data.name, &data.username, &hashed_password, &data.role_id],
     ).await?;
     Ok(())
 }
@@ -156,7 +155,6 @@ pub struct UpdateUserRequest {
     pub name: String,
     pub password: String,
     pub role_id: i32,
-    pub shop_id: i32,
 }
 
 pub async fn update_user(
@@ -175,7 +173,7 @@ pub async fn update_user(
 
     client
         .execute(
-            "update users set name = $1, password = $2, role_id = $3,where id = $4",
+            "update users set name = $1, password = $2, role_id = $3 where id = $4",
             &[
                 &data.name,
                 &hashed_password,

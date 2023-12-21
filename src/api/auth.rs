@@ -41,7 +41,7 @@ pub async fn login(
                     .expect("Time went backwards")
                     .as_secs() as usize;
                 let token = jwt::sign_token(&jwt::Claims {
-                    sub: format!("{},{}", &user.id, &user.role_name),
+                    sub: format!("{},{},{}", &user.id, &user.role_name, &user.username),
                     exp: now + (3600 * 24),
                 })
                 .unwrap();
