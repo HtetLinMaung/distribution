@@ -1,7 +1,8 @@
 CREATE TABLE brands
 (
     id SERIAL PRIMARY KEY,
-    brandname VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
@@ -10,9 +11,8 @@ CREATE TABLE brands
 CREATE TABLE categories
 (
     id SERIAL PRIMARY KEY,
-    categorname VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
-    brand_id INTEGER REFERENCES brands(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
