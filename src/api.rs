@@ -10,5 +10,4 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(user::get_user_by_id);
     cfg.service(user::update_user);
     cfg.service(user::delete_user);
-   
 }
