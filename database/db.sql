@@ -2,7 +2,6 @@ CREATE TABLE brands
 (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
@@ -18,6 +17,37 @@ CREATE TABLE categories
 );
 
 
+CREATE TABLE roles
+(
+    id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) NOT NULL UNIQUE,
+    deleted_at TIMESTAMP DEFAULT null
+);
+
+INSERT INTO roles
+    (role_name)
+VALUES
+    ('Admin'),
+    ('Manager'),
+    ('Distributor');
+
+CREATE TABLE users
+(
+    id SERIAL PRIMARY KEY,
+    name varchar(255) not null,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role_id INTEGER REFERENCES roles(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT null
+);
+
+insert into users
+    (username, password, name, role_id, created_at)
+values
+    ('admin', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Admin', 1, now());
+
+
 CREATE TABLE products
 (
     id SERIAL PRIMARY KEY,
@@ -31,20 +61,29 @@ CREATE TABLE products
 );
 
 
-CREATE TABLE users
+CREATE TABLE shops
 (
     id SERIAL PRIMARY KEY,
+    day varchar(50) not null,
+    ward_id INTEGER REFERENCES wards(id),
     name varchar(255) not null,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    role_id INTEGER REFERENCES roles(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
 
-CREATE TABLE roles
+CREATE TABLE wards
 (
     id SERIAL PRIMARY KEY,
-    role_name VARCHAR(50) NOT NULL UNIQUE,
+    name varchar(255) not null,
+    township_id INTEGER REFERENCES townships(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT null
+);
+
+CREATE TABLE townships
+(
+    id SERIAL PRIMARY KEY,
+    name varchar(50) not null,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
