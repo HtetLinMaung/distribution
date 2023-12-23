@@ -44,7 +44,7 @@ pub struct AddUserRequest {
     pub fullname: String,
     pub username: String,
     pub password: String,
-    pub role: i32,
+    pub role: String,
 }
 
 pub async fn add_user(
@@ -60,34 +60,98 @@ pub async fn add_user(
     Ok(())
 }
 
+// pub async fn get_users(
+//     search: &Option<String>,
+//     page: Option<usize>,
+//     per_page: Option<usize>,
+//     role: Option<String>,
+//     client: &Client,
+// ) -> Result<PaginationResult<User>, Error> {
+//     let mut base_query =
+//         "from users u join roles r on u.role_id = r.id where u.deleted_at is null and r.deleted_at is null".to_string();
+//     let mut params: Vec<Box<dyn ToSql + Sync>> = vec![];
+
+//     if let Some(ri) = role_id {
+//         params.push(Box::new(ri));
+//         base_query = format!("{base_query} and u.role_id = ${}", params.len());
+//     }
+
+//     let result = generate_pagination_query(PaginationOptions {
+//         select_columns:
+//             "u.id, u.name, u.username, u.password, u.role_id, r.role_name, u.created_at",
+//         base_query: &base_query,
+//         search_columns: vec![
+//             "u.id::varchar",
+//             "u.name",
+//             "u.username",
+//             "r.role_name",
+//         ],
+//         search: search.as_deref(),
+//         order_options: Some("u.created_at desc"),
+//         page,
+//         per_page,
+//     });
+
+//     let params_slice: Vec<&(dyn ToSql + Sync)> = params.iter().map(AsRef::as_ref).collect();
+
+//     let row = client.query_one(&result.count_query, &params_slice).await?;
+//     let total: i64 = row.get("total");
+
+//     let mut page_counts = 0;
+//     let mut current_page = 0;
+//     let mut limit = 0;
+//     if page.is_some() && per_page.is_some() {
+//         current_page = page.unwrap();
+//         limit = per_page.unwrap();
+//         page_counts = (total as f64 / limit as f64).ceil() as usize;
+//     }
+
+//     let users = client
+//         .query(&result.query, &params_slice[..])
+//         .await?
+//         .iter()
+//         .map(|row| User {
+//             userid: row.get("user_id"),
+//             fullname: row.get("fullname"),
+//             username: row.get("username"),
+//             password: row.get("password"),
+//             role: row.get("role"),
+//             created_at: row.get("created_at"),
+//         })
+//         .collect();
+
+//     Ok(PaginationResult {
+//         data: users,
+//         total,
+//         page: current_page,
+//         per_page: limit,
+//         page_counts,
+//     })
+// }
+
 pub async fn get_users(
     search: &Option<String>,
     page: Option<usize>,
     per_page: Option<usize>,
-    role_id: Option<i32>,
+    role: &str,
     client: &Client,
 ) -> Result<PaginationResult<User>, Error> {
-    let mut base_query =
-        "from users u join roles r on u.role_id = r.id where u.deleted_at is null and r.deleted_at is null".to_string();
-    let mut params: Vec<Box<dyn ToSql + Sync>> = vec![];
+    let base_query =
+        "from users u where u.deleted_at is null".to_string();
+    let params: Vec<Box<dyn ToSql + Sync>> = vec![];
 
-    if let Some(ri) = role_id {
-        params.push(Box::new(ri));
-        base_query = format!("{base_query} and u.role_id = ${}", params.len());
-    }
+    let order_options = if role == "Distributor" {
+        "full_name"
+    } else {
+        "u.created_at desc"
+    };
 
     let result = generate_pagination_query(PaginationOptions {
-        select_columns:
-            "u.id, u.name, u.username, u.password, u.role_id, r.role_name, u.created_at",
+        select_columns: "u.user_id, u.full_name,u.username,u.password, u.role, u.created_at",
         base_query: &base_query,
-        search_columns: vec![
-            "u.id::varchar",
-            "u.name",
-            "u.username",
-            "r.role_name",
-        ],
+        search_columns: vec!["u.user_id, u.full_name,u.username, u.role"],
         search: search.as_deref(),
-        order_options: Some("u.created_at desc"),
+        order_options: Some(&order_options),
         page,
         per_page,
     });
@@ -106,19 +170,18 @@ pub async fn get_users(
         page_counts = (total as f64 / limit as f64).ceil() as usize;
     }
 
-    let users = client
-        .query(&result.query, &params_slice[..])
+    let users: Vec<User> = client
+        .query(&result.query, &params_slice)
         .await?
         .iter()
         .map(|row| User {
             userid: row.get("user_id"),
-            fullname: row.get("fullname"),
+            fullname: row.get("full_name"),
             username: row.get("username"),
             password: row.get("password"),
             role: row.get("role"),
             created_at: row.get("created_at"),
-        })
-        .collect();
+        }).collect();
 
     Ok(PaginationResult {
         data: users,
@@ -130,7 +193,7 @@ pub async fn get_users(
 }
 
 pub async fn get_user_by_id(user_id: i32, client: &Client) -> Option<User> {
-    match client.query_one("select fullname, username, password, role, created_at from users  where deleted_at is null  and id = $1", &[&user_id]).await {
+    match client.query_one("select user_id,full_name, username, password, role, created_at from users  where deleted_at is null  and user_id = $1", &[&user_id]).await {
         Ok(row) => Some(User {
             userid: row.get("user_id"),
             fullname: row.get("full_name"),
@@ -148,9 +211,9 @@ pub async fn get_user_by_id(user_id: i32, client: &Client) -> Option<User> {
 
 #[derive(Deserialize)]
 pub struct UpdateUserRequest {
-    pub name: String,
+    pub fullname: String,
     pub password: String,
-    pub role_id: i32,
+    pub role: String,
 }
 
 pub async fn update_user(
@@ -169,11 +232,11 @@ pub async fn update_user(
 
     client
         .execute(
-            "update users set name = $1, password = $2, role_id = $3 where id = $4",
+            "update users set full_name = $1, password = $2, role = $3 where user_id = $4",
             &[
-                &data.name,
+                &data.fullname,
                 &hashed_password,
-                &data.role_id,
+                &data.role,
                 &user_id,
             ],
         )
@@ -184,7 +247,7 @@ pub async fn update_user(
 pub async fn delete_user(user_id: i32, client: &Client) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "update users set deleted_at = CURRENT_TIMESTAMP where id = $1 and deleted_at is null",
+            "update users set deleted_at = CURRENT_TIMESTAMP where user_id = $1 and deleted_at is null",
             &[&user_id],
         )
         .await?;
