@@ -10,6 +10,11 @@ CREATE TABLE users
     deleted_at TIMESTAMP DEFAULT NULL
 );
 
+insert into users
+    (username, password, full_name, role, created_at)
+values
+    ('distributor', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Thant Zin', 'Disributor', now());
+
 CREATE TABLE townships
 (
     township_id SERIAL PRIMARY KEY,

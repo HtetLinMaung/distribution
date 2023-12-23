@@ -17,7 +17,7 @@ pub struct GetUsersQuery {
     pub search: Option<String>,
     pub page: Option<usize>,
     pub per_page: Option<usize>,
-    pub role_id: Option<i32>,
+    pub role: Option<String>,
 }
 
 #[get("/api/users")]
@@ -79,7 +79,7 @@ pub async fn get_users(
         &query.search,
         query.page,
         query.per_page,
-        query.role_id,
+        role,
         &client,
     )
     .await
@@ -159,7 +159,7 @@ pub async fn add_user(
         });
     }
 
-    if body.name.is_empty() {
+    if body.fullname.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
             message: String::from("Name must not be empty!"),
@@ -325,7 +325,7 @@ pub async fn update_user(
         });
     }
 
-    if body.name.is_empty() {
+    if body.fullname.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
             message: String::from("Name must not be empty!"),

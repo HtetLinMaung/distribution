@@ -41,7 +41,7 @@ pub async fn login(
                     .expect("Time went backwards")
                     .as_secs() as usize;
                 let token = jwt::sign_token(&jwt::Claims {
-                    sub: format!("{},{},{}", &user.id, &user.role_name, &user.username),
+                    sub: format!("{},{},{}", &user.userid, &user.role, &user.username),
                     exp: now + (3600 * 24),
                 })
                 .unwrap();
@@ -50,8 +50,8 @@ pub async fn login(
                     code: 200,
                     message: String::from("Token generated successfully."),
                     token: token,
-                    name: user.name,
-                    role: user.role_name,
+                    name: user.fullname,
+                    role: user.role,
                 })
             } else {
                 HttpResponse::Unauthorized().json(BaseResponse {
