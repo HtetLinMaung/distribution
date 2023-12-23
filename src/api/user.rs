@@ -159,7 +159,7 @@ pub async fn add_user(
         });
     }
 
-    if body.name.is_empty() {
+    if body.fullname.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
             message: String::from("Name must not be empty!"),

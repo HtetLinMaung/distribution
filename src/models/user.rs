@@ -10,31 +10,29 @@ use crate::utils::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    pub id: i32,
-    pub name: String,
+    pub userid: i32,
+    pub fullname: String,
     pub username: String,
     pub password: String,
-    pub role_id: i32,
-    pub role_name: String,
+    pub role: String,
     pub created_at: NaiveDateTime,
 }
 
 pub async fn get_user(username: &str, client: &Client) -> Option<User> {
     let result = client
         .query_one(
-            "select u.id, u.username, u.password, u.role_id, r.role_name, u.name,u.created_at from users u inner join roles r on r.id = u.role_id  where u.username = $1 and u.deleted_at is null and r.deleted_at is null",
+            "select user_id,full_name,username,password,role,created_at from users  where username = $1 and deleted_at is null",
             &[&username],
         )
         .await;
 
     match result {
         Ok(row) => Some(User {
-            id: row.get("id"),
-            name: row.get("name"),
+            userid: row.get("user_id"),
+            fullname: row.get("full_name"),
             username: row.get("username"),
             password: row.get("password"),
-            role_id: row.get("role_id"),
-            role_name: row.get("role_name"),
+            role: row.get("role"),
             created_at: row.get("created_at"),
         }),
         Err(_) => None,
@@ -43,10 +41,10 @@ pub async fn get_user(username: &str, client: &Client) -> Option<User> {
 
 #[derive(Deserialize)]
 pub struct AddUserRequest {
-    pub name: String,
+    pub fullname: String,
     pub username: String,
     pub password: String,
-    pub role_id: i32,
+    pub role: i32,
 }
 
 pub async fn add_user(
@@ -56,8 +54,8 @@ pub async fn add_user(
     let hashed_password = hash(&data.password, DEFAULT_COST)
         .map_err(|e| format!("Failed to hash password: {}", e))?;
     client.execute(
-        "insert into users (name, username, password, role_id) values ($1, $2, $3, $4)",
-        &[&data.name, &data.username, &hashed_password, &data.role_id],
+        "insert into users (full_name, username, password, role) values ($1, $2, $3, $4)",
+        &[&data.fullname, &data.username, &hashed_password, &data.role],
     ).await?;
     Ok(())
 }
@@ -113,12 +111,11 @@ pub async fn get_users(
         .await?
         .iter()
         .map(|row| User {
-            id: row.get("id"),
-            name: row.get("name"),
+            userid: row.get("user_id"),
+            fullname: row.get("fullname"),
             username: row.get("username"),
             password: row.get("password"),
-            role_id: row.get("role_id"),
-            role_name: row.get("role_name"),
+            role: row.get("role"),
             created_at: row.get("created_at"),
         })
         .collect();
@@ -133,14 +130,13 @@ pub async fn get_users(
 }
 
 pub async fn get_user_by_id(user_id: i32, client: &Client) -> Option<User> {
-    match client.query_one("select u.id, u.name, u.username, u.password, u.role_id, r.role_name, u.created_at from users u join roles r on u.role_id = r.id where u.deleted_at is null and r.deleted_at is null and u.id = $1", &[&user_id]).await {
+    match client.query_one("select fullname, username, password, role, created_at from users  where deleted_at is null  and id = $1", &[&user_id]).await {
         Ok(row) => Some(User {
-            id: row.get("id"),
-            name: row.get("name"),
+            userid: row.get("user_id"),
+            fullname: row.get("full_name"),
             username: row.get("username"),
             password: row.get("password"),
-            role_id: row.get("role_id"),
-            role_name: row.get("role_name"),
+            role: row.get("role"),
             created_at: row.get("created_at"),
         }),
         Err(err) => {
