@@ -95,6 +95,22 @@ CREATE TABLE shop_weekdays
     PRIMARY KEY (shop_id, weekday_id, deleted_at)
 );
 
+CREATE TABLE categories
+(
+    category_id SERIAL PRIMARY KEY,
+    category_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE brands
+(
+    brand_id SERIAL PRIMARY KEY,
+    brand_name VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
+);
+
 CREATE TABLE products
 (
     product_id SERIAL PRIMARY KEY,
@@ -115,22 +131,6 @@ CREATE TABLE product_prices
     package_quantity INT DEFAULT 1,
     -- Relevant only for package deals
     remaining_quantity INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP DEFAULT NULL
-);
-
-CREATE TABLE categories
-(
-    category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP DEFAULT NULL
-);
-
-CREATE TABLE brands
-(
-    brand_id SERIAL PRIMARY KEY,
-    brand_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL
 );
