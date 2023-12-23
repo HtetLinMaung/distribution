@@ -22,6 +22,7 @@ CREATE TABLE townships
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
+INSERT INTO townships (township_name) VALUES ('Hlaing Township');
 
 CREATE TABLE wards
 (
@@ -31,6 +32,8 @@ CREATE TABLE wards
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null
 );
+INSERT INTO wards (ward_name, township_id) VALUES ('Hlaing Ward 1', 1), ('Hlaing Ward 2', 1);
+
 
 CREATE TABLE user_wards
 (
@@ -38,8 +41,9 @@ CREATE TABLE user_wards
     ward_id INT REFERENCES wards(ward_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT null,
-    PRIMARY KEY (user_id, ward_id, deleted_at)
+    PRIMARY KEY (user_id, ward_id)
 );
+INSERT INTO user_wards (user_id, ward_id) VALUES (1, 1);
 
 CREATE TABLE shops
 (
@@ -53,6 +57,12 @@ CREATE TABLE shops
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL
 );
+INSERT INTO shops (shop_name, address, ward_id)
+SELECT 
+    'Shop ' || id,
+    'Yangon, Hlaing Township, Ward 1, No ' || id,
+    1
+FROM generate_series(1, 140) id;
 
 CREATE TABLE weekdays
 (
@@ -97,8 +107,11 @@ CREATE TABLE shop_weekdays
     weekday_id INT REFERENCES weekdays(weekday_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
-    PRIMARY KEY (shop_id, weekday_id, deleted_at)
+    PRIMARY KEY (shop_id, weekday_id)
 );
+insert into shop_weekdays (shop_id, weekday_id)
+SELECT shop,1 END
+FROM generate_series(1, 20) shop;
 
 CREATE TABLE products
 (

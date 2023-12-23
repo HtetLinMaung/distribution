@@ -1,8 +1,10 @@
 mod brand;
 mod category;
-use actix_web::web;
 mod auth;
 mod user;
+mod shop;
+
+use actix_web::web;
 
 pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(auth::login);
@@ -22,4 +24,6 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(brand::get_brand_by_id);
     cfg.service(brand::update_brand);
     cfg.service(brand::delete_brand);
+    cfg.service(shop::get_shops);
+    cfg.service(shop::get_shop_by_id);
 }
