@@ -14,7 +14,7 @@ insert into users
     (username, password, full_name, role, created_at)
 values
     ('distributor', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Thant Zin', 'Disributor', now());
-    ('admin', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Admin', 'Admin', now());
+    ('admin', '$2b$12$VsrfBeuszFplm3HX4QgMWOg/KMsIhZgPLCjej2W3DI.YHz9Gq9Zjq', 'Thant Zin Lin', 'Admin', now());
 
 
 CREATE TABLE townships
