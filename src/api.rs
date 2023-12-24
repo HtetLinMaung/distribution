@@ -3,6 +3,8 @@ mod category;
 mod auth;
 mod user;
 mod shop;
+mod township;
+mod ward;
 
 use actix_web::web;
 
@@ -26,4 +28,14 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(brand::delete_brand);
     cfg.service(shop::get_shops);
     cfg.service(shop::get_shop_by_id);
+    cfg.service(township::add_township);
+    cfg.service(township::get_townships);
+    cfg.service(township::get_township_by_id);
+    cfg.service(township::update_township);
+    cfg.service(township::delete_township);
+    cfg.service(ward::add_ward);
+    cfg.service(ward::get_wards);
+    cfg.service(ward::get_ward_by_id);
+    cfg.service(ward::update_ward);
+    cfg.service(ward::delete_ward);
 }
