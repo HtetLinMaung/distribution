@@ -40,4 +40,5 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(ward::update_ward);
     cfg.service(ward::delete_ward);
     cfg.service(order::add_order);
+    cfg.service(order::get_orders);
 }
