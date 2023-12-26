@@ -8,6 +8,12 @@ use crate::utils::{
     sql::{generate_pagination_query, PaginationOptions},
 };
 
+#[derive(Debug, Serialize, Deserialize)] // Add Debug derive
+pub struct UserWard {
+    pub ward_id: i32,
+    pub ward_name: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub userid: i32,
@@ -16,7 +22,9 @@ pub struct User {
     pub password: String,
     pub role: String,
     pub created_at: NaiveDateTime,
+    pub wards: Vec<UserWard>,
 }
+
 
 pub async fn get_user(username: &str, client: &Client) -> Option<User> {
     let result = client
@@ -34,6 +42,7 @@ pub async fn get_user(username: &str, client: &Client) -> Option<User> {
             password: row.get("password"),
             role: row.get("role"),
             created_at: row.get("created_at"),
+            wards: Vec::new(), 
         }),
         Err(_) => None,
     }
@@ -45,7 +54,11 @@ pub struct AddUserRequest {
     pub username: String,
     pub password: String,
     pub role: String,
+    pub ward_ids: Vec<i32>,
+
 }
+
+
 
 pub async fn add_user(
     data: &AddUserRequest,
@@ -53,81 +66,36 @@ pub async fn add_user(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let hashed_password = hash(&data.password, DEFAULT_COST)
         .map_err(|e| format!("Failed to hash password: {}", e))?;
-    client.execute(
-        "insert into users (full_name, username, password, role) values ($1, $2, $3, $4)",
-        &[&data.fullname, &data.username, &hashed_password, &data.role],
-    ).await?;
+
+    // Insert user into the users table
+    let user_insert_query = "
+        insert into users (full_name, username, password, role)
+        values ($1, $2, $3, $4)
+        RETURNING user_id
+    ";
+    let user_id: i32 = client
+        .query_one(
+            user_insert_query,
+            &[&data.fullname, &data.username, &hashed_password, &data.role],
+        )
+        .await?
+        .get("user_id");
+
+    // Insert user-ward relationship into the user_wards table
+    let user_wards_insert_query = "
+        insert into user_wards (user_id, ward_id)
+        values ($1, $2)
+    ";
+    for ward_id in &data.ward_ids {
+        client
+            .execute(user_wards_insert_query, &[&user_id, &ward_id])
+            .await?;
+    }
+
     Ok(())
 }
 
-// pub async fn get_users(
-//     search: &Option<String>,
-//     page: Option<usize>,
-//     per_page: Option<usize>,
-//     role: Option<String>,
-//     client: &Client,
-// ) -> Result<PaginationResult<User>, Error> {
-//     let mut base_query =
-//         "from users u join roles r on u.role_id = r.id where u.deleted_at is null and r.deleted_at is null".to_string();
-//     let mut params: Vec<Box<dyn ToSql + Sync>> = vec![];
 
-//     if let Some(ri) = role_id {
-//         params.push(Box::new(ri));
-//         base_query = format!("{base_query} and u.role_id = ${}", params.len());
-//     }
-
-//     let result = generate_pagination_query(PaginationOptions {
-//         select_columns:
-//             "u.id, u.name, u.username, u.password, u.role_id, r.role_name, u.created_at",
-//         base_query: &base_query,
-//         search_columns: vec![
-//             "u.id::varchar",
-//             "u.name",
-//             "u.username",
-//             "r.role_name",
-//         ],
-//         search: search.as_deref(),
-//         order_options: Some("u.created_at desc"),
-//         page,
-//         per_page,
-//     });
-
-//     let params_slice: Vec<&(dyn ToSql + Sync)> = params.iter().map(AsRef::as_ref).collect();
-
-//     let row = client.query_one(&result.count_query, &params_slice).await?;
-//     let total: i64 = row.get("total");
-
-//     let mut page_counts = 0;
-//     let mut current_page = 0;
-//     let mut limit = 0;
-//     if page.is_some() && per_page.is_some() {
-//         current_page = page.unwrap();
-//         limit = per_page.unwrap();
-//         page_counts = (total as f64 / limit as f64).ceil() as usize;
-//     }
-
-//     let users = client
-//         .query(&result.query, &params_slice[..])
-//         .await?
-//         .iter()
-//         .map(|row| User {
-//             userid: row.get("user_id"),
-//             fullname: row.get("fullname"),
-//             username: row.get("username"),
-//             password: row.get("password"),
-//             role: row.get("role"),
-//             created_at: row.get("created_at"),
-//         })
-//         .collect();
-
-//     Ok(PaginationResult {
-//         data: users,
-//         total,
-//         page: current_page,
-//         per_page: limit,
-//         page_counts,
-//     })
-// }
 
 pub async fn get_users(
     search: &Option<String>,
@@ -181,6 +149,7 @@ pub async fn get_users(
             password: row.get("password"),
             role: row.get("role"),
             created_at: row.get("created_at"),
+            wards: Vec::new(),
         }).collect();
 
     Ok(PaginationResult {
@@ -193,7 +162,21 @@ pub async fn get_users(
 }
 
 pub async fn get_user_by_id(user_id: i32, client: &Client) -> Option<User> {
-    match client.query_one("select user_id,full_name, username, password, role, created_at from users  where deleted_at is null  and user_id = $1", &[&user_id]).await {
+    let result = client.query_one("select user_id,full_name, username, password, role, created_at from users  where deleted_at is null  and user_id = $1", &[&user_id]).await;
+    let wards_rows = match client
+        .query(
+            "SELECT uw.ward_id, w.ward_name FROM user_wards uw JOIN wards w ON w.ward_id = uw.ward_id WHERE uw.user_id = $1",
+            &[&user_id],
+        )
+        .await
+    {
+        Ok(rows) => rows,
+        Err(err) => {
+            println!("{:?}", err);
+            vec![]
+        }
+    };
+    match result {
         Ok(row) => Some(User {
             userid: row.get("user_id"),
             fullname: row.get("full_name"),
@@ -201,6 +184,13 @@ pub async fn get_user_by_id(user_id: i32, client: &Client) -> Option<User> {
             password: row.get("password"),
             role: row.get("role"),
             created_at: row.get("created_at"),
+            wards: wards_rows
+                    .iter()
+                    .map(|row| UserWard {
+                        ward_id: row.get("ward_id"),
+                        ward_name: row.get("ward_name"),
+                    })
+                    .collect(),
         }),
         Err(err) => {
             println!("{:?}", err);
@@ -214,6 +204,7 @@ pub struct UpdateUserRequest {
     pub fullname: String,
     pub password: String,
     pub role: String,
+    pub ward_ids: Vec<i32>,
 }
 
 pub async fn update_user(
@@ -241,6 +232,14 @@ pub async fn update_user(
             ],
         )
         .await?;
+    client.execute("delete from user_wards where user_id = $1",&[&user_id],).await?;
+
+    let user_wards_insert_query = "insert into user_wards (user_id, ward_id) values ($1, $2) ";
+    for ward_id in &data.ward_ids {
+        client
+            .execute(user_wards_insert_query, &[&user_id, &ward_id])
+            .await?;
+    }
     Ok(())
 }
 
