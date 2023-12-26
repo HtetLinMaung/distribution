@@ -1,9 +1,10 @@
+mod auth;
 mod brand;
 mod category;
-mod auth;
-mod user;
+mod order;
 mod shop;
 mod township;
+mod user;
 mod ward;
 
 use actix_web::web;
@@ -38,4 +39,5 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(ward::get_ward_by_id);
     cfg.service(ward::update_ward);
     cfg.service(ward::delete_ward);
+    cfg.service(order::add_order);
 }
