@@ -9,9 +9,8 @@ use crate::utils::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Category {
-    pub id: i32,
-    pub name: String,
-    pub description: String,
+    pub category_id: i32,
+    pub category_name: String,
     pub created_at: NaiveDateTime,
 }
 
@@ -33,9 +32,9 @@ pub async fn get_categories(
     };
 
     let result = generate_pagination_query(PaginationOptions {
-        select_columns: "c.id, c.name, c.description, c.created_at",
+        select_columns: "c.category_id, c.category_name, c.created_at",
         base_query: &base_query,
-        search_columns: vec!["c.id::varchar", "c.name", "c.description"],
+        search_columns: vec!["c.category_id::varchar", "c.category_name"],
         search: search.as_deref(),
         order_options: Some(&order_options),
         page,
@@ -61,9 +60,8 @@ pub async fn get_categories(
         .await?
         .iter()
         .map(|row| Category {
-            id: row.get("id"),
-            name: row.get("name"),
-            description: row.get("description"),
+            category_id: row.get("category_id"),
+            category_name: row.get("category_name"),
             created_at: row.get("created_at"),
         })
         .collect();
@@ -79,8 +77,7 @@ pub async fn get_categories(
 
 #[derive(Debug, Deserialize)]
 pub struct CategoryRequest {
-    pub name: String,
-    pub description: String
+    pub category_name: String,
 }
 
 pub async fn add_category(
@@ -89,8 +86,8 @@ pub async fn add_category(
 ) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "insert into categories (name, description) values ($1, $2)",
-            &[&data.name, &data.description],
+            "insert into categories (category_name) values ($1)",
+            &[&data.category_name],
         )
         .await?;
     Ok(())
@@ -99,16 +96,15 @@ pub async fn add_category(
 pub async fn get_category_by_id(category_id: i32, client: &Client) -> Option<Category> {
     let result = client
         .query_one(
-            "select c.id, c.name, c.description, c.created_at from categories c where c.deleted_at is null and c.id = $1",
+            "select c.category_id, c.category_name, c.created_at from categories c where c.deleted_at is null and c.category_id = $1",
             &[&category_id],
         )
         .await;
 
     match result {
         Ok(row) => Some(Category {
-            id: row.get("id"),
-            name: row.get("name"),
-            description: row.get("description"),
+            category_id: row.get("category_id"),
+            category_name: row.get("category_name"),
             created_at: row.get("created_at"),
         }),
         Err(_) => None,
@@ -122,8 +118,8 @@ pub async fn update_category(
 ) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "update categories set name = $1, description = $2 where id = $3",
-            &[&data.name, &data.description, &category_id],
+            "update categories set category_name = $1 where category_id = $2",
+            &[&data.category_name, &category_id],
         )
         .await?;
 
@@ -136,7 +132,7 @@ pub async fn delete_category(
 ) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "update categories set deleted_at = CURRENT_TIMESTAMP where id = $1",
+            "update categories set deleted_at = CURRENT_TIMESTAMP where category_id = $1",
             &[&category_id],
         )
         .await?;

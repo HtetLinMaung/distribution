@@ -29,6 +29,9 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(brand::delete_brand);
     cfg.service(shop::get_shops);
     cfg.service(shop::get_shop_by_id);
+    cfg.service(shop::add_shop);
+    cfg.service(shop::update_shop);
+    cfg.service(shop::delete_shop);
     cfg.service(township::add_township);
     cfg.service(township::get_townships);
     cfg.service(township::get_township_by_id);

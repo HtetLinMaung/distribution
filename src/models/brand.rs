@@ -9,9 +9,8 @@ use crate::utils::{
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Brand {
-    pub id: i32,
-    pub name: String,
-    pub description: String,
+    pub brand_id: i32,
+    pub brand_name: String,
     pub created_at: NaiveDateTime,
 }
 
@@ -33,9 +32,9 @@ pub async fn get_brands(
     };
 
     let result = generate_pagination_query(PaginationOptions {
-        select_columns: "b.id, b.name, b.description, b.created_at",
+        select_columns: "b.brand_id, b.brand_name, b.created_at",
         base_query: &base_query,
-        search_columns: vec!["b.id::varchar", "b.name", "b.description"],
+        search_columns: vec!["b.brand_id::varchar", "b.brand_name"],
         search: search.as_deref(),
         order_options: Some(&order_options),
         page,
@@ -61,9 +60,8 @@ pub async fn get_brands(
         .await?
         .iter()
         .map(|row| Brand {
-            id: row.get("id"),
-            name: row.get("name"),
-            description: row.get("description"),
+            brand_id: row.get("brand_id"),
+            brand_name: row.get("brand_name"),
             created_at: row.get("created_at"),
         })
         .collect();
@@ -79,8 +77,7 @@ pub async fn get_brands(
 
 #[derive(Debug, Deserialize)]
 pub struct BrandRequest {
-    pub name: String,
-    pub description: String
+    pub brand_name: String,
 }
 
 pub async fn add_brand(
@@ -89,8 +86,8 @@ pub async fn add_brand(
 ) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "insert into brands (name, description) values ($1, $2)",
-            &[&data.name, &data.description],
+            "insert into brands (brand_name) values ($1)",
+            &[&data.brand_name],
         )
         .await?;
     Ok(())
@@ -99,16 +96,15 @@ pub async fn add_brand(
 pub async fn get_brand_by_id(brand_id: i32, client: &Client) -> Option<Brand> {
     let result = client
         .query_one(
-            "select b.id, b.name, b.description, b.created_at from brands b where b.deleted_at is null and b.id = $1",
+            "select b.brand_id, b.brand_name, b.created_at from brands b where b.deleted_at is null and b.brand_id = $1",
             &[&brand_id],
         )
         .await;
 
     match result {
         Ok(row) => Some(Brand {
-            id: row.get("id"),
-            name: row.get("name"),
-            description: row.get("description"),
+            brand_id: row.get("brand_id"),
+            brand_name: row.get("brand_name"),
             created_at: row.get("created_at"),
         }),
         Err(_) => None,
@@ -122,8 +118,8 @@ pub async fn update_brand(
 ) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "update brands set name = $1, description = $2 where id = $3",
-            &[&data.name, &data.description, &brand_id],
+            "update brands set brand_name = $1 where brand_id = $2",
+            &[&data.brand_name, &brand_id],
         )
         .await?;
 
@@ -136,7 +132,7 @@ pub async fn delete_brand(
 ) -> Result<(), Box<dyn std::error::Error>> {
     client
         .execute(
-            "update brands set deleted_at = CURRENT_TIMESTAMP where id = $1",
+            "update brands set deleted_at = CURRENT_TIMESTAMP where brand_id = $1",
             &[&brand_id],
         )
         .await?;

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use actix_web::{delete, get, post, put, web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 use tokio_postgres::Client;
+use tokio::sync::Mutex;
 
 use crate::{
     models::category::{self, CategoryRequest},
@@ -22,9 +23,10 @@ pub struct GetCategoriesQuery {
 #[get("/api/categories")]
 pub async fn get_categories(
     req: HttpRequest,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
     query: web::Query<GetCategoriesQuery>,
 ) -> impl Responder {
+    let client = data.lock().await;
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -101,8 +103,9 @@ pub async fn get_categories(
 pub async fn add_category(
     req: HttpRequest,
     body: web::Json<CategoryRequest>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -153,16 +156,10 @@ pub async fn add_category(
         });
     }
 
-    if body.name.is_empty() {
+    if body.category_name.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
             message: String::from("Name must not be empty!"),
-        });
-    }
-    if body.description.is_empty() {
-        return HttpResponse::BadRequest().json(BaseResponse {
-            code: 400,
-            message: String::from("Description must not be empty!"),
         });
     }
 
@@ -185,8 +182,9 @@ pub async fn add_category(
 pub async fn get_category_by_id(
     req: HttpRequest,
     path: web::Path<i32>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     let category_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
@@ -255,8 +253,9 @@ pub async fn update_category(
     req: HttpRequest,
     path: web::Path<i32>,
     body: web::Json<CategoryRequest>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     let category_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
@@ -307,16 +306,10 @@ pub async fn update_category(
         });
     }
 
-    if body.name.is_empty() {
+    if body.category_name.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
             message: String::from("Name must not be empty!"),
-        });
-    }
-    if body.description.is_empty() {
-        return HttpResponse::BadRequest().json(BaseResponse {
-            code: 400,
-            message: String::from("Description must not be empty!"),
         });
     }
 
@@ -345,8 +338,9 @@ pub async fn update_category(
 pub async fn delete_category(
     req: HttpRequest,
     path: web::Path<i32>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     let category_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
