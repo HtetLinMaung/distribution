@@ -250,6 +250,12 @@ pub async fn delete_user(user_id: i32, client: &Client) -> Result<(), Box<dyn st
             &[&user_id],
         )
         .await?;
+    client
+        .execute(
+            "delete from user_wards where user_id = $1",
+            &[&user_id],
+        )
+        .await?;
     Ok(())
 }
 
