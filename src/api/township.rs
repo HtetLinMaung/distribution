@@ -3,6 +3,7 @@ use std::sync::Arc;
 use actix_web::{delete, get, post, put, web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 use tokio_postgres::Client;
+use tokio::sync::Mutex;
 
 use crate::{
     models::township::{self, TownshipRequest},
@@ -22,9 +23,10 @@ pub struct GetTownshipsQuery {
 #[get("/api/townships")]
 pub async fn get_townships(
     req: HttpRequest,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
     query: web::Query<GetTownshipsQuery>,
 ) -> impl Responder {
+    let client = data.lock().await;
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -101,8 +103,9 @@ pub async fn get_townships(
 pub async fn add_township(
     req: HttpRequest,
     body: web::Json<TownshipRequest>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -179,8 +182,9 @@ pub async fn add_township(
 pub async fn get_township_by_id(
     req: HttpRequest,
     path: web::Path<i32>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     let township_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
@@ -249,8 +253,9 @@ pub async fn update_township(
     req: HttpRequest,
     path: web::Path<i32>,
     body: web::Json<TownshipRequest>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     let township_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
@@ -333,8 +338,9 @@ pub async fn update_township(
 pub async fn delete_township(
     req: HttpRequest,
     path: web::Path<i32>,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
+    let client = data.lock().await;
     let township_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
