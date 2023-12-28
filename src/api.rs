@@ -6,6 +6,8 @@ mod shop;
 mod township;
 mod user;
 mod ward;
+mod product;
+mod product_price;
 
 use actix_web::web;
 
@@ -44,4 +46,14 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(ward::delete_ward);
     cfg.service(order::add_order);
     cfg.service(order::get_orders);
+    cfg.service(product::get_products);
+    cfg.service(product::get_product_by_id);
+    cfg.service(product::add_product);
+    cfg.service(product::update_product);
+    cfg.service(product::delete_product);
+    cfg.service(product_price::get_prices);
+    cfg.service(product_price::get_price_by_id);
+    cfg.service(product_price::add_price);
+    cfg.service(product_price::update_price);
+    cfg.service(product_price::delete_price);
 }

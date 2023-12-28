@@ -25,8 +25,8 @@ pub async fn get_brands(
         "from brands b where b.deleted_at is null".to_string();
     let params: Vec<Box<dyn ToSql + Sync>> = vec![];
 
-    let order_options = if role == "Sale" {
-        "name"
+    let order_options = if role == "Distributor" {
+        "brand_name"
     } else {
         "b.created_at desc"
     };

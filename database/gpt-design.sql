@@ -205,7 +205,7 @@ CREATE TABLE product_categories
     category_id INT REFERENCES categories(category_id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
-    PRIMARY KEY (product_id, category_id, deleted_at)
+    PRIMARY KEY (product_id, category_id)
 );
 
 -- CREATE TABLE product_brands
