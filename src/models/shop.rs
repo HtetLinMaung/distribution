@@ -46,7 +46,7 @@ pub async fn get_shops(
             user_id
         )
     } else {
-        "from shops s where s.deleted_at is null".to_string()
+        "from shops s, wards w where s.ward_id=w.ward_id and s.deleted_at is null".to_string()
     };
     if role == "Distributor"
         && weekdays.is_some()
@@ -63,7 +63,7 @@ pub async fn get_shops(
     };
 
     let result = generate_pagination_query(PaginationOptions {
-        select_columns: "s.shop_id, s.shop_name, s.address, COALESCE(s.latitude,0.0)::text as latitude, COALESCE(s.longitude,0.0)::text as longitude, image_url, w.ward_id, w.ward_name, s.created_at",
+        select_columns: "distinct s.shop_id, s.shop_name, s.address, COALESCE(s.latitude,0.0)::text as latitude, COALESCE(s.longitude,0.0)::text as longitude, image_url, w.ward_id, w.ward_name, s.created_at",
         base_query: &base_query,
         search_columns: vec!["s.shop_id::varchar", "s.shop_name", "s.address", "w.ward_name"],
         search: search.as_deref(),
