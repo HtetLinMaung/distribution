@@ -10,11 +10,11 @@ use crate::utils::{
 #[derive(Deserialize)]
 pub struct OrderRequest {
     pub shop_id: i32,
-    pub order_details: Vec<OrderDetail>,
+    pub order_details: Vec<OrderDetailRequest>,
 }
 
 #[derive(Deserialize)]
-pub struct OrderDetail {
+pub struct OrderDetailRequest {
     pub price_id: i32,
     pub quantity: i32,
 }
@@ -219,6 +219,107 @@ pub async fn get_orders(
 
     Ok(PaginationResult {
         data: orders,
+        total,
+        page: current_page,
+        per_page: limit,
+        page_counts,
+    })
+}
+
+#[derive(Serialize)]
+pub struct OrderDetail {
+    pub order_detail_id: i32,
+    pub order_id: i32,
+    pub price_id: i32,
+    pub product_name: String,
+    pub price_type: String,
+    pub quantity: i32,
+    pub price_at_order: f64,
+    pub discount_id: i32,
+    pub discount_name: String,
+}
+
+pub async fn get_order_details(
+    search: &Option<String>,
+    page: Option<usize>,
+    per_page: Option<usize>,
+    order_id: Option<i32>,
+    from_amount: &Option<f64>,
+    to_amount: &Option<f64>,
+    client: &Client,
+) -> Result<PaginationResult<OrderDetail>, Error> {
+    let mut base_query =
+        "from order_details od join orders o on o.order_id = od.order_id join product_prices pp on pp.price_id = od.price_id join products p on p.product_id = pp.product_id left join discounts d on d.discount_id = od.discount_id where o.deleted_at is null and od.deleted_at is null and pp.deleted_at is null and p.deleted_at is null".to_string();
+    let mut params: Vec<Box<dyn ToSql + Sync>> = vec![];
+
+    if let Some(oid) = order_id {
+        params.push(Box::new(oid));
+        base_query = format!("{base_query} and od.order_id = ${}", params.len());
+    }
+
+    if from_amount.is_some() && to_amount.is_some() {
+        base_query = format!(
+            "{base_query} and od.price_at_order between {} and {}",
+            from_amount.unwrap(),
+            to_amount.unwrap()
+        );
+    }
+
+    let order_options = "p.product_name".to_string();
+
+    let result = generate_pagination_query(PaginationOptions {
+        select_columns: "od.order_detail_id, o.order_id, od.price_id, p.product_name, pp.price_type, od.quantity, od.price_at_order::text, coalesce(od.discount_id, 0) discount_id, coalesce(d.discount_name, '') discount_name",
+        base_query: &base_query,
+        search_columns: vec![
+            "od.order_detail_id::text",
+            "o.order_id::text",
+            "p.product_name",
+            "pp.price_type",
+        ],
+        search: search.as_deref(),
+        order_options: Some(&order_options),
+        page,
+        per_page,
+    });
+
+    let params_slice: Vec<&(dyn ToSql + Sync)> = params.iter().map(AsRef::as_ref).collect();
+
+    let row = client.query_one(&result.count_query, &params_slice).await?;
+    let total: i64 = row.get("total");
+
+    let mut page_counts = 0;
+    let mut current_page = 0;
+    let mut limit = 0;
+    if page.is_some() && per_page.is_some() {
+        current_page = page.unwrap();
+        limit = per_page.unwrap();
+        page_counts = (total as f64 / limit as f64).ceil() as usize;
+    }
+
+    let order_detailss = client
+        .query(&result.query, &params_slice[..])
+        .await?
+        .iter()
+        .map(|row| {
+            let price_at_order: &str = row.get("price_at_order");
+            let price_at_order: f64 = price_at_order.parse().unwrap();
+
+            OrderDetail {
+                order_detail_id: row.get("order_detail_id"),
+                order_id: row.get("order_id"),
+                price_id: row.get("price_id"),
+                product_name: row.get("product_name"),
+                price_type: row.get("price_type"),
+                quantity: row.get("quantity"),
+                price_at_order,
+                discount_id: row.get("discount_id"),
+                discount_name: row.get("discount_name"),
+            }
+        })
+        .collect();
+
+    Ok(PaginationResult {
+        data: order_detailss,
         total,
         page: current_page,
         per_page: limit,
