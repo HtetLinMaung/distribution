@@ -26,9 +26,9 @@ FROM debian:bullseye-slim
 RUN apt-get update && apt-get install -y libpq5 libssl1.1 && rm -rf /var/lib/apt/lists/*
 
 # Copy over the built binary file from the builder stage
-COPY --from=builder /usr/src/app/target/release/watchwonder /usr/local/bin/
+COPY --from=builder /usr/src/app/target/release/distribution /usr/local/bin/
 
 COPY images /images
 
 # Set the start command
-CMD ["watchwonder"]
+CMD ["distribution"]
