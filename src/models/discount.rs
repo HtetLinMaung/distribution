@@ -124,11 +124,11 @@ pub async fn add_discount(
     client: &Client,
 ) -> Result<(), Box<dyn std::error::Error>> {
     
-   let discount_insert_query = "insert into discounts (discount_name,discount_type,discount_value,start_date,end_date,min_quantity,max_quantity,conditions) values ($1,$2,$3,$4,$5,$6,$7,$8)  RETURNING discount_id";
+   let discount_insert_query = format!("insert into discounts (discount_name,discount_type,discount_value,start_date,end_date,min_quantity,max_quantity,conditions) values ($1,$2,{},$3,$4,$5,$6,$7)  RETURNING discount_id",data.discount_value);
    let discount_id: i32 = client
    .query_one(
-    discount_insert_query,
-       &[&data.discount_name, &data.discount_type,&data.discount_value.to_string(),  &data.start_date, &data.end_date, &data.min_quantity, &data.max_quantity, &data.conditions ],
+    &discount_insert_query,
+       &[&data.discount_name, &data.discount_type,  &data.start_date, &data.end_date, &data.min_quantity, &data.max_quantity, &data.conditions ],
    )
    .await?
    .get("discount_id"); 
@@ -198,22 +198,20 @@ pub async fn update_discount(
     discount_id: i32,
     client: &Client,
 ) -> Result<(), Box<dyn std::error::Error>> {
-
+ let query = format!("update discounts set discount_name = $1, discount_type = $2, discount_value = {},
+ start_date = $3, end_date = $4, min_quantity = $5, max_quantity = $6, conditions = $7 where discount_id = $8",data.discount_value);
     client
         .execute(
-            "update discounts set discount_name = $1, discount_type = $2, discount_value = $3,
-            start_date = $4, end_date = $5, min_quantity = $6, max_quantity = $7, conditions = $8 where discount_id = $9",
+            &query,
             &[
                 &data.discount_name,
                 &data.discount_type,
-                &data.discount_value,
                 &data.start_date,
                 &data.end_date,
                 &data.min_quantity,
                 &data.max_quantity,
                 &data.conditions,
                 &discount_id,
-                &data.discount_value,
             ],
         )
         .await?;
