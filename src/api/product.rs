@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use tokio_postgres::Client;
 
 use crate::{
-    models::shop::{self, ShopRequest},
+    models::product::{self, ProductRequest},
     utils::{
         common_struct::{BaseResponse, DataResponse, PaginationResponse},
         jwt::verify_token_and_get_sub,
@@ -14,18 +14,19 @@ use crate::{
 };
 
 #[derive(Deserialize)]
-pub struct GetShopsQuery {
+pub struct GetProductsQuery {
     pub search: Option<String>,
     pub page: Option<usize>,
     pub per_page: Option<usize>,
-    pub weekdays: Option<String>,
+    pub category_id: Option<usize>,
+    pub brand_id: Option<usize>,
 }
 
-#[get("/api/shops")]
-pub async fn get_shops(
+#[get("/api/products")]
+pub async fn get_products(
     req: HttpRequest,
     data: web::Data<Arc<Mutex<Client>>>,
-    query: web::Query<GetShopsQuery>,
+    query: web::Query<GetProductsQuery>,
 ) -> impl Responder {
     let client = data.lock().await;
     // Extract the token from the Authorization header
@@ -68,16 +69,16 @@ pub async fn get_shops(
         });
     }
 
-    let user_id: i32 = parsed_values[0].parse().unwrap();
+   // let user_id: i32 = parsed_values[0].parse().unwrap();
     let role: &str = parsed_values[1];
 
-    match shop::get_shops(
-        user_id,
+    match product::get_products(
+        query.category_id,
+        query.brand_id,
         &query.search,
         query.page,
         query.per_page,
         role,
-        &query.weekdays,
         &client,
     )
     .await
@@ -93,19 +94,19 @@ pub async fn get_shops(
         }),
         Err(err) => {
             // Log the error message here
-            println!("Error retrieving shops: {:?}", err);
+            println!("Error retrieving products: {:?}", err);
             HttpResponse::InternalServerError().json(BaseResponse {
                 code: 500,
-                message: String::from("Error trying to read all shops from database"),
+                message: String::from("Error trying to read all products from database"),
             })
         }
     }
 }
 
-#[post("/api/shops")]
-pub async fn add_shop(
+#[post("/api/products")]
+pub async fn add_product(
     req: HttpRequest,
-    body: web::Json<ShopRequest>,
+    body: web::Json<ProductRequest>,
     data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
     let client = data.lock().await;
@@ -159,42 +160,36 @@ pub async fn add_shop(
         });
     }
 
-    if body.shop_name.is_empty() {
+    if body.product_name.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
-            message: String::from("Shop Name must not be empty!"),
-        });
-    }
-    if body.address.is_empty() {
-        return HttpResponse::BadRequest().json(BaseResponse {
-            code: 400,
-            message: String::from("Address must not be empty!"),
+            message: String::from("Product Name must not be empty!"),
         });
     }
 
-    match shop::add_shop(&body, &client).await {
+    match product::add_product(&body, &client).await {
         Ok(()) => HttpResponse::Created().json(BaseResponse {
             code: 201,
-            message: String::from("Shop added successfully"),
+            message: String::from("Product added successfully"),
         }),
         Err(e) => {
-            eprintln!("Shop adding error: {}", e);
+            eprintln!("Product adding error: {}", e);
             return HttpResponse::InternalServerError().json(BaseResponse {
                 code: 500,
-                message: String::from("Error adding shop!"),
+                message: String::from("Error adding product!"),
             });
         }
     }
 }
 
-#[get("/api/shops/{shop_id}")]
-pub async fn get_shop_by_id(
+#[get("/api/products/{product_id}")]
+pub async fn get_product_by_id(
     req: HttpRequest,
     path: web::Path<i32>,
     data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
     let client = data.lock().await;
-    let shop_id = path.into_inner();
+    let product_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -244,28 +239,28 @@ pub async fn get_shop_by_id(
         });
     }
 
-    match shop::get_shop_by_id(shop_id, &client).await {
+    match product::get_product_by_id(product_id, &client).await {
         Some(c) => HttpResponse::Ok().json(DataResponse {
             code: 200,
-            message: String::from("Shop fetched successfully."),
+            message: String::from("Product fetched successfully."),
             data: Some(c),
         }),
         None => HttpResponse::NotFound().json(BaseResponse {
             code: 404,
-            message: String::from("Shop not found!"),
+            message: String::from("Product not found!"),
         }),
     }
 }
 
-#[put("/api/shops/{shop_id}")]
-pub async fn update_shop(
+#[put("/api/products/{product_id}")]
+pub async fn update_product(
     req: HttpRequest,
     path: web::Path<i32>,
-    body: web::Json<ShopRequest>,
+    body: web::Json<ProductRequest>,
     data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
     let client = data.lock().await;
-    let shop_id = path.into_inner();
+    let product_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -315,49 +310,42 @@ pub async fn update_shop(
         });
     }
 
-    if body.shop_name.is_empty() {
+    if body.product_name.is_empty() {
         return HttpResponse::BadRequest().json(BaseResponse {
             code: 400,
-            message: String::from("Shop Name must not be empty!"),
+            message: String::from("Product Name must not be empty!"),
         });
     }
 
-    if body.address.is_empty() {
-        return HttpResponse::BadRequest().json(BaseResponse {
-            code: 400,
-            message: String::from("Address must not be empty!"),
-        });
-    }
-
-    match shop::get_shop_by_id(shop_id, &client).await {
-        Some(s) => match shop::update_shop(shop_id, &s.image_url, &body, &client).await {
+    match product::get_product_by_id(product_id, &client).await {
+        Some(s) => match product::update_product(product_id, &s.image_url, &body, &client).await {
             Ok(()) => HttpResponse::Ok().json(BaseResponse {
                 code: 200,
-                message: String::from("Shop updated successfully"),
+                message: String::from("Product updated successfully"),
             }),
             Err(e) => {
-                eprintln!("Shop updating error: {}", e);
+                eprintln!("Product updating error: {}", e);
                 return HttpResponse::InternalServerError().json(BaseResponse {
                     code: 500,
-                    message: String::from("Error updating shop!"),
+                    message: String::from("Error updating product!"),
                 });
             }
         },
         None => HttpResponse::NotFound().json(BaseResponse {
             code: 404,
-            message: String::from("Shop not found!"),
+            message: String::from("Product not found!"),
         }),
     }
 }
 
-#[delete("/api/shops/{shop_id}")]
-pub async fn delete_shop(
+#[delete("/api/products/{product_id}")]
+pub async fn delete_product(
     req: HttpRequest,
     path: web::Path<i32>,
     data: web::Data<Arc<Mutex<Client>>>,
 ) -> HttpResponse {
     let client = data.lock().await;
-    let shop_id = path.into_inner();
+    let product_id = path.into_inner();
     // Extract the token from the Authorization header
     let token = match req.headers().get("Authorization") {
         Some(value) => {
@@ -407,23 +395,23 @@ pub async fn delete_shop(
         });
     }
 
-    match shop::get_shop_by_id(shop_id, &client).await {
-        Some(_) => match shop::delete_shop(shop_id, &client).await {
+    match product::get_product_by_id(product_id, &client).await {
+        Some(_) => match product::delete_product(product_id, &client).await {
             Ok(()) => HttpResponse::Ok().json(BaseResponse {
                 code: 204,
-                message: String::from("Shop deleted successfully"),
+                message: String::from("Product deleted successfully"),
             }),
             Err(e) => {
-                eprintln!("Shop deleting error: {}", e);
+                eprintln!("Product deleting error: {}", e);
                 return HttpResponse::InternalServerError().json(BaseResponse {
                     code: 500,
-                    message: String::from("Error deleting shop!"),
+                    message: String::from("Error deleting product!"),
                 });
             }
         },
         None => HttpResponse::NotFound().json(BaseResponse {
             code: 404,
-            message: String::from("Shop not found!"),
+            message: String::from("Product not found!"),
         }),
     }
 }

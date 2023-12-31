@@ -6,3 +6,5 @@ pub mod shop;
 pub mod township;
 pub mod ward;
 pub mod discount;
+pub mod product;
+pub mod product_price;
