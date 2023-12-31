@@ -6,6 +6,8 @@ mod shop;
 mod township;
 mod user;
 mod ward;
+mod discount;
+
 
 use actix_web::web;
 
@@ -41,4 +43,12 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(ward::delete_ward);
     cfg.service(order::add_order);
     cfg.service(order::get_orders);
+    cfg.service(discount::add_discount);
+    cfg.service(discount::get_discount_by_id);
+    cfg.service(discount::get_discounts);
+    cfg.service(discount::update_discount);
+    cfg.service(discount::delete_discount);
+
+
+
 }
