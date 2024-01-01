@@ -75,12 +75,23 @@ pub async fn get_discounts(
         .await?;
         let mut discounts: Vec<Discount> = vec![];
         for row in &rows {
+            let discount_id: i32 = row.get("discount_id");
             let discount_value_str: &str = row.get("discount_value");
             let start_date_str: &str = row.get("start_date");
             let end_date_str: &str = row.get("end_date");
+            let product_price_rows =  client
+            .query(
+                "select pd.price_id,p.product_id, p.product_name
+                from product_discounts pd 
+                join discounts d on d.discount_id = pd.discount_id
+                join product_prices pp on pp.price_id = pd.price_id
+                join products p on p.product_id = pp.product_id where pd.discount_id = $1",
+                &[&discount_id],
+            )
+            .await?;
             discounts.push(
                 Discount {
-                    discount_id: row.get("discount_id"),
+                    discount_id: discount_id,
                     discount_name: row.get("discount_name"),
                     discount_type: row.get("discount_type"),
                     discount_value: discount_value_str.parse().unwrap(),
@@ -90,7 +101,14 @@ pub async fn get_discounts(
                     max_quantity: row.get("max_quantity"),
                     conditions: row.get("conditions"),
                     created_at: row.get("created_at"),
-                    product_prices: Vec::new(),
+                    product_prices: product_price_rows
+                        .iter()
+                        .map(|row| ProductPrice {
+                            price_id: row.get("price_id"),
+                            product_id: row.get("product_id"),
+                            product_name: row.get("product_name"),
+                        })
+                        .collect(),
 
                 }
             );
@@ -145,9 +163,9 @@ pub async fn get_discount_by_id(discount_id: i32, client: &Client) -> Option<Dis
         .query(
             "select pd.price_id,p.product_id, p.product_name
             from product_discounts pd 
-            join discounts d ON d.discount_id = pd.discount_id
-            join product_prices pp ON pp.price_id = pd.price_id
-            join products p ON p.product_id = pp.product_id where pd.discount_id = $1",
+            join discounts d on d.discount_id = pd.discount_id
+            join product_prices pp on pp.price_id = pd.price_id
+            join products p on p.product_id = pp.product_id where pd.discount_id = $1",
             &[&discount_id],
         )
         .await
