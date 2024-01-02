@@ -138,20 +138,36 @@ pub async fn get_users(
         page_counts = (total as f64 / limit as f64).ceil() as usize;
     }
 
-    let users: Vec<User> = client
-        .query(&result.query, &params_slice)
-        .await?
-        .iter()
-        .map(|row| User {
-            userid: row.get("user_id"),
+    let rows = client
+    .query(&result.query, &params_slice)
+    .await?;
+    let mut users: Vec<User> = vec![];
+    for row in &rows {
+        let user_id = row.get("user_id");
+        let wards_rows =  client
+        .query(
+            "SELECT uw.ward_id, w.ward_name FROM user_wards uw JOIN wards w ON w.ward_id = uw.ward_id WHERE uw.user_id = $1",
+            &[&user_id],
+        )
+        .await?;
+        users.push(
+            User {
+            userid: user_id,
             fullname: row.get("full_name"),
             username: row.get("username"),
             password: row.get("password"),
             role: row.get("role"),
             created_at: row.get("created_at"),
-            wards: Vec::new(),
-        }).collect();
-
+            wards: wards_rows
+                .iter()
+                .map(|row| UserWard {
+                    ward_id: row.get("ward_id"),
+                    ward_name: row.get("ward_name"),
+                })
+                .collect(),
+            }
+        );
+    }
     Ok(PaginationResult {
         data: users,
         total,
