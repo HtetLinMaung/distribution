@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use tokio_postgres::Client;
 
 use crate::{
-    models::product::{self, ProductRequest},
+    models::product::{self, ProductRequest, ProductListRequest},
     utils::{
         common_struct::{BaseResponse, DataResponse, PaginationResponse},
         jwt::verify_token_and_get_sub,
@@ -22,11 +22,11 @@ pub struct GetProductsQuery {
     pub brand_id: Option<usize>,
 }
 
-#[get("/api/products")]
+#[post("/api/productlist")]
 pub async fn get_products(
     req: HttpRequest,
     data: web::Data<Arc<Mutex<Client>>>,
-    query: web::Query<GetProductsQuery>,
+    body: web::Json<ProductListRequest>,
 ) -> impl Responder {
     let client = data.lock().await;
     // Extract the token from the Authorization header
@@ -73,11 +73,7 @@ pub async fn get_products(
     let role: &str = parsed_values[1];
 
     match product::get_products(
-        query.category_id,
-        query.brand_id,
-        &query.search,
-        query.page,
-        query.per_page,
+        &body,
         role,
         &client,
     )
