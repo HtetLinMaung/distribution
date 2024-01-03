@@ -1,9 +1,10 @@
-version: '3.9'
+version: "3.9"
 
 services:
   web:
     restart: always
-    build: .
+    image: htetlinmaung/distribution
+    # build: .
     ports:
       - "8005:8080"
     environment:
