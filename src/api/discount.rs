@@ -182,37 +182,6 @@ pub async fn add_discount(
         }
     }
 
-    // match user::user_exists(&body.username, &client).await {
-    //     Ok(exists) => {
-    //         if exists {
-    //             return HttpResponse::BadRequest().json(BaseResponse {
-    //                 code: 400,
-    //                 message: String::from("User already exists!"),
-    //             });
-    //         }
-
-    //         match user::add_user(&body, &client).await {
-    //             Ok(()) => HttpResponse::Created().json(BaseResponse {
-    //                 code: 201,
-    //                 message: String::from("User added successfully"),
-    //             }),
-    //             Err(e) => {
-    //                 eprintln!("User adding error: {}", e);
-    //                 return HttpResponse::InternalServerError().json(BaseResponse {
-    //                     code: 500,
-    //                     message: String::from("Error adding user!"),
-    //                 });
-    //             }
-    //         }
-    //     }
-    //     Err(e) => {
-    //         eprintln!("Database error: {}", e);
-    //         return HttpResponse::InternalServerError().json(BaseResponse {
-    //             code: 500,
-    //             message: String::from("Something went wrong!"),
-    //         });
-    //     }
-    // }
 }
 
 #[get("/api/discounts/{discount_id}")]
