@@ -27,15 +27,30 @@ pub struct Weekdays {
     pub weekday_name: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ShopListRequest {
+    pub search: Option<String>,
+    pub page: Option<usize>,
+    pub per_page: Option<usize>,
+    pub weekdays: Option<Vec<i32>>,
+}
+
 pub async fn get_shops(
     user_id: i32,
-    search: &Option<String>,
-    page: Option<usize>,
-    per_page: Option<usize>,
     role: &str,
-    weekdays: &Option<String>,
+    shop_list_request: &ShopListRequest,
     client: &Client,
 ) -> Result<PaginationResult<Shop>, Error> {
+    let weekdays = match &shop_list_request.weekdays {
+        Some(weekdays) => {
+            let mut weekdays_str = String::new();
+            for weekday in weekdays {
+                weekdays_str += &format!("{},", weekday);
+            }
+            Some(weekdays_str.trim_end_matches(',').to_string())
+        }
+        None => None,
+    };
     let mut base_query = if role == "Distributor" {
         format!(
             "from 
@@ -46,10 +61,13 @@ pub async fn get_shops(
             user_id
         )
     } else {
-        "from shops s, wards w where s.ward_id=w.ward_id and s.deleted_at is null".to_string()
+        "from 
+        users u, user_wards uw, shops s, shop_weekdays sw, wards w
+        where u.user_id = uw.user_id and uw.ward_id=s.ward_id and s.shop_id=sw.shop_id
+        and w.ward_id=s.ward_id
+        and s.deleted_at is null".to_string()
     };
-    if role == "Distributor"
-        && weekdays.is_some()
+    if weekdays.is_some()
         && !weekdays.as_ref().unwrap_or(&String::new()).is_empty()
     {
         base_query += &format!(" AND sw.weekday_id IN ({})", weekdays.as_ref().unwrap());
@@ -66,10 +84,10 @@ pub async fn get_shops(
         select_columns: "distinct s.shop_id, s.shop_name, s.address, COALESCE(s.latitude,0.0)::text as latitude, COALESCE(s.longitude,0.0)::text as longitude, image_url, w.ward_id, w.ward_name, s.created_at",
         base_query: &base_query,
         search_columns: vec!["s.shop_id::varchar", "s.shop_name", "s.address", "w.ward_name"],
-        search: search.as_deref(),
+        search: shop_list_request.search.as_deref(),
         order_options: Some(&order_options),
-        page,
-        per_page,
+        page: shop_list_request.page,
+        per_page: shop_list_request.per_page,
     });
 
     let params_slice: Vec<&(dyn ToSql + Sync)> = params.iter().map(AsRef::as_ref).collect();
@@ -80,9 +98,9 @@ pub async fn get_shops(
     let mut page_counts = 0;
     let mut current_page = 0;
     let mut limit = 0;
-    if page.is_some() && per_page.is_some() {
-        current_page = page.unwrap();
-        limit = per_page.unwrap();
+    if shop_list_request.page.is_some() && shop_list_request.per_page.is_some() {
+        current_page = shop_list_request.page.unwrap();
+        limit = shop_list_request.per_page.unwrap();
         page_counts = (total as f64 / limit as f64).ceil() as usize;
     }
 

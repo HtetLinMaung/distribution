@@ -24,23 +24,48 @@ pub struct Categories {
     pub category_name: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ProductListRequest {
+    pub  categories: Option<Vec<i32>>,
+    pub brands: Option<Vec<i32>>,
+    pub search: Option<String>,
+    pub page: Option<usize>,
+    pub per_page: Option<usize>,
+}
+
 pub async fn get_products(
-    category_id: Option<usize>,
-    brand_id: Option<usize>,
-    search: &Option<String>,
-    page: Option<usize>,
-    per_page: Option<usize>,
+    product_list_request: &ProductListRequest,
     role: &str,
     client: &Client,
 ) -> Result<PaginationResult<Product>, Error> {
     let mut base_query = "from products p, brands b, categories c, product_categories pc  
     where p.product_id=pc.product_id and pc.category_id=c.category_id and p.brand_id=b.brand_id and p.deleted_at is null".to_string();
     let params: Vec<Box<dyn ToSql + Sync>> = vec![];
-    if let Some(category_id) = category_id {
-        base_query += &format!(" AND c.category_id={}", category_id);
+    let categories = match &product_list_request.categories {
+        Some(categories) => {
+            let mut categories_str = String::new();
+            for category in categories {
+                categories_str += &format!("{},", category);
+            }
+            Some(categories_str.trim_end_matches(',').to_string())
+        }
+        None => None,
+    };
+    if categories.is_some() && categories.clone().unwrap() != "".to_string() {
+        base_query += &format!(" AND c.category_id IN ({})", categories.unwrap());
     }
-    if let Some(brand_id) = brand_id {
-        base_query += &format!(" AND b.brand_id={}", brand_id);
+    let brands = match &product_list_request.brands {
+        Some(brands) => {
+            let mut brands_str = String::new();
+            for brand in brands {
+                brands_str += &format!("{},", brand);
+            }
+            Some(brands_str.trim_end_matches(',').to_string())
+        }
+        None => None,
+    };
+    if brands.is_some() && brands.clone().unwrap() != "".to_string() {
+        base_query += &format!(" AND b.brand_id IN ({})", brands.unwrap());
     }
     let order_options = if role == "Distributor" {
         "p.product_name"
@@ -52,10 +77,10 @@ pub async fn get_products(
         select_columns: "distinct p.product_id, p.product_name, p.image_url, b.brand_id, b.brand_name, p.created_at",
         base_query: &base_query,
         search_columns: vec!["p.product_id::varchar", "p.product_name", "b.brand_name", "c.category_name"],
-        search: search.as_deref(),
+        search: product_list_request.search.as_deref(),
         order_options: Some(&order_options),
-        page,
-        per_page,
+        page: product_list_request.page,
+        per_page: product_list_request.per_page,
     });
 
     let params_slice: Vec<&(dyn ToSql + Sync)> = params.iter().map(AsRef::as_ref).collect();
@@ -66,9 +91,9 @@ pub async fn get_products(
     let mut page_counts = 0;
     let mut current_page = 0;
     let mut limit = 0;
-    if page.is_some() && per_page.is_some() {
-        current_page = page.unwrap();
-        limit = per_page.unwrap();
+    if product_list_request.page.is_some() && product_list_request.per_page.is_some() {
+        current_page = product_list_request.page.unwrap();
+        limit = product_list_request.per_page.unwrap();
         page_counts = (total as f64 / limit as f64).ceil() as usize;
     }
 

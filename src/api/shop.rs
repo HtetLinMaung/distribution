@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use tokio_postgres::Client;
 
 use crate::{
-    models::shop::{self, ShopRequest},
+    models::shop::{self, ShopRequest, ShopListRequest},
     utils::{
         common_struct::{BaseResponse, DataResponse, PaginationResponse},
         jwt::verify_token_and_get_sub,
@@ -21,11 +21,11 @@ pub struct GetShopsQuery {
     pub weekdays: Option<String>,
 }
 
-#[get("/api/shops")]
+#[post("/api/shoplist")]
 pub async fn get_shops(
     req: HttpRequest,
     data: web::Data<Arc<Mutex<Client>>>,
-    query: web::Query<GetShopsQuery>,
+    body: web::Json<ShopListRequest>,
 ) -> impl Responder {
     let client = data.lock().await;
     // Extract the token from the Authorization header
@@ -73,11 +73,8 @@ pub async fn get_shops(
 
     match shop::get_shops(
         user_id,
-        &query.search,
-        query.page,
-        query.per_page,
         role,
-        &query.weekdays,
+        &body,
         &client,
     )
     .await
